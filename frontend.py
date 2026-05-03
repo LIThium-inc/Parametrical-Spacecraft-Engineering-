@@ -139,7 +139,23 @@ class HohmannTransferDialog(tk.Toplevel):
             background=[("active", PANEL_ALT_BG)],
             foreground=[("active", "#ffffff")],
         )
-        style.configure("Dark.TCombobox", fieldbackground=FIELD_BG, foreground=TEXT_FG)
+        style.configure(
+            "Dark.TCombobox",
+            fieldbackground=FIELD_BG,
+            background=FIELD_BG,
+            foreground="#ffffff",
+            arrowcolor="#ffffff",
+            selectbackground=FIELD_BG,
+            selectforeground="#ffffff",
+        )
+        style.map(
+            "Dark.TCombobox",
+            fieldbackground=[("readonly", FIELD_BG)],
+            background=[("readonly", FIELD_BG)],
+            foreground=[("readonly", "#ffffff")],
+            selectbackground=[("readonly", FIELD_BG)],
+            selectforeground=[("readonly", "#ffffff")],
+        )
 
     def _build_ui(self):
         self.columnconfigure(0, weight=1)
