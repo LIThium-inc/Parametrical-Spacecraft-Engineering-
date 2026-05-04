@@ -463,10 +463,20 @@ E11D458M = RCSThruster(thrust=392, specificImpulse=302/9.81, propellantType="MMH
 
 class launchVehicle:
     """A class representing a launch vehicle. It contains information about the stages of the vehicle and the total mass."""
-    def __init__(self, payloadMass, maxPayloadDiameter, maxPayLoadLength, rocketName):
+    def __init__(self, payloadMass, maxPayloadDiameter, maxPayLoadLength, rocketName, rocketImage):
         self.payloadMass = payloadMass
         self.maxPayloadDiameter = maxPayloadDiameter
         self.maxPayLoadLength = maxPayLoadLength
         self.rocketName = rocketName
+        self.rocketImage = rocketImage
         
+
+class antenna:
+    """A class representing a communication antenna. It contains information about the gain, frequency range, and power requirements."""
+    def __init__(self, type, gain, frequencyRange, powerRequirements):
+        self.type = type
+        self.gain = gain
+        self.frequencyRange = frequencyRange
+        self.frequencyRangeName = None
+        self.powerRequirements = powerRequirements
         

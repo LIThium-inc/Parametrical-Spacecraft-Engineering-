@@ -1,6 +1,8 @@
 import math as m
 import tkinter as tk
 from tkinter import ttk
+import json
+from tkinter import filedialog
 
 from backend import (
     EARTH_RADIUS_KM,
@@ -246,6 +248,8 @@ class HohmannTransferDialog(tk.Toplevel):
         action_panel.columnconfigure(0, weight=1)
         action_panel.columnconfigure(1, weight=1)
         action_panel.columnconfigure(2, weight=1)
+        action_panel.columnconfigure(3, weight=1)
+        action_panel.columnconfigure(4, weight=1)
 
         ttk.Button(
             action_panel,
@@ -266,6 +270,18 @@ class HohmannTransferDialog(tk.Toplevel):
             command=self._toggle_fullscreen,
         )
         self.fullscreen_button.grid(row=0, column=2, sticky="ew", padx=(6, 0))
+        ttk.Button(
+            action_panel,
+            text="Сохранить проект",
+            style="Dark.TButton",
+            command=self.save_project,
+        ).grid(row=0, column=3, sticky="ew", padx=(6, 0))
+        ttk.Button(
+            action_panel,
+            text="Загрузить проект",
+            style="Dark.TButton",
+            command=self.load_project,
+        ).grid(row=0, column=4, sticky="ew", padx=(6, 0))
 
         results_panel = ttk.Frame(controls, padding=12, style="AltPanel.TFrame")
         results_panel.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(0, 12))
@@ -1257,6 +1273,46 @@ class HohmannTransferDialog(tk.Toplevel):
                 font=("Segoe UI", 10),
             )
             y += 26
+
+
+    def save_project(self):
+        data = {}
+        var_names = [
+            'initial_radius', 'target_radius', 'scheme', 'payload_mass', 'booster_diameter',
+            'oxidizer_ratio', 'tank_margin', 'fuel_type', 'oxidizer_type', 'fuel_tank_type',
+            'oxidizer_tank_type', 'fuel_tank_material', 'oxidizer_tank_material', 'custom_aux_systems',
+            'single_stage_isp', 'single_stage_structure', 'universal_stage_isp', 'universal_stage_structure',
+            'stage1_isp', 'stage1_structure', 'stage2_isp', 'stage2_structure'
+        ]
+        for var_name in var_names:
+            data[var_name] = getattr(self, var_name + '_var').get()
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".json",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+        )
+        if file_path:
+            try:
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, indent=4, ensure_ascii=False)
+                self.status_var.set("Проект сохранен успешно.")
+            except Exception as e:
+                self.status_var.set(f"Ошибка сохранения: {str(e)}")
+
+    def load_project(self):
+        file_path = filedialog.askopenfilename(
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+        )
+        if file_path:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                for key, value in data.items():
+                    if hasattr(self, key + '_var'):
+                        getattr(self, key + '_var').set(value)
+                self.update_results()
+                self.status_var.set("Проект загружен успешно.")
+            except Exception as e:
+                self.status_var.set(f"Ошибка загрузки: {str(e)}")
 
 
 def open_calculation_dialog(master: tk.Misc):
