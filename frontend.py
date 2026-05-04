@@ -316,7 +316,7 @@ class HohmannTransferDialog(tk.Toplevel):
 
         tk.Label(
             visual_frame,
-            text="Сцена орбитального перехода",
+            text="Визуализация орбитального перехода",
             bg=APP_BG,
             fg=TEXT_FG,
             font=("Segoe UI", 12, "bold"),
