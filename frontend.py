@@ -32,6 +32,19 @@ def format_seconds(seconds: float):
     return f"{days} д {hours:02d} ч {minutes:02d} мин {seconds_left:02d} с"
 
 
+def format_optional_mass(value):
+    if value is None:
+        return "-"
+    return f"{value:,.1f} кг"
+
+
+def format_optional_float(value, unit="", digits=2):
+    if value is None:
+        return "-"
+    suffix = f" {unit}" if unit else ""
+    return f"{value:,.{digits}f}{suffix}"
+
+
 class HohmannTransferDialog(tk.Toplevel):
     def __init__(self, master: tk.Misc):
         super().__init__(master)
@@ -53,6 +66,7 @@ class HohmannTransferDialog(tk.Toplevel):
         self.fuel_tank_material_var = tk.StringVar(value="AMg6")
         self.oxidizer_tank_material_var = tk.StringVar(value="AMg6")
         self.payload_mass_var = tk.StringVar(value="2500")
+        self.booster_diameter_var = tk.StringVar(value="3.8")
         self.oxidizer_ratio_var = tk.StringVar(value="3.4")
         self.tank_margin_var = tk.StringVar(value="0.08")
         self.custom_aux_systems_var = tk.StringVar(value="Telemetry:25; Power:40")
@@ -363,41 +377,42 @@ class HohmannTransferDialog(tk.Toplevel):
         ).pack(side="left", padx=(16, 0))
 
         self._add_labeled_entry(parent, 2, "Полезная нагрузка, кг", self.payload_mass_var)
-        self._add_labeled_entry(parent, 3, "Отношение O/F", self.oxidizer_ratio_var)
-        self._add_labeled_entry(parent, 4, "Запас объема баков", self.tank_margin_var)
-        self._add_labeled_combobox(parent, 5, "Топливо", self.fuel_type_var, list(fuelDensity.keys()))
-        self._add_labeled_combobox(parent, 6, "Окислитель", self.oxidizer_type_var, list(oxiderDensity.keys()))
-        self._add_labeled_combobox(parent, 7, "Тип бака топлива", self.fuel_tank_type_var, ["Spherical", "Cylindrical", "Torus"])
-        self._add_labeled_combobox(parent, 8, "Тип бака окислителя", self.oxidizer_tank_type_var, ["Spherical", "Cylindrical", "Torus"])
-        self._add_labeled_combobox(parent, 9, "Материал бака топлива", self.fuel_tank_material_var, ["AMg6", "Aluminum", "Titanium", "CarbonFiber"])
-        self._add_labeled_combobox(parent, 10, "Материал бака окислителя", self.oxidizer_tank_material_var, ["AMg6", "Aluminum", "Titanium", "CarbonFiber"])
-        self._add_labeled_entry(parent, 11, "Доп. системы (name:mass; ...)", self.custom_aux_systems_var)
+        self._add_labeled_entry(parent, 3, "Диаметр РБ, м", self.booster_diameter_var)
+        self._add_labeled_entry(parent, 4, "Отношение O/F", self.oxidizer_ratio_var)
+        self._add_labeled_entry(parent, 5, "Запас объема баков", self.tank_margin_var)
+        self._add_labeled_combobox(parent, 6, "Топливо", self.fuel_type_var, list(fuelDensity.keys()))
+        self._add_labeled_combobox(parent, 7, "Окислитель", self.oxidizer_type_var, list(oxiderDensity.keys()))
+        self._add_labeled_combobox(parent, 8, "Тип бака топлива", self.fuel_tank_type_var, ["Spherical", "Cylindrical", "Torus"])
+        self._add_labeled_combobox(parent, 9, "Тип бака окислителя", self.oxidizer_tank_type_var, ["Spherical", "Cylindrical", "Torus"])
+        self._add_labeled_combobox(parent, 10, "Материал бака топлива", self.fuel_tank_material_var, ["AMg6", "Aluminum", "Titanium", "CarbonFiber"])
+        self._add_labeled_combobox(parent, 11, "Материал бака окислителя", self.oxidizer_tank_material_var, ["AMg6", "Aluminum", "Titanium", "CarbonFiber"])
+        self._add_labeled_entry(parent, 12, "Доп. системы (name:mass; ...)", self.custom_aux_systems_var)
 
         ttk.Label(
             parent,
             text="Одноступенчатая схема",
             style="DarkSubHeader.TLabel",
-        ).grid(row=12, column=0, columnspan=2, sticky="w", pady=(10, 4))
-        self._add_labeled_entry(parent, 13, "Isp единой ступени, с", self.single_stage_isp_var)
-        self._add_labeled_entry(parent, 14, "Конструктивный коэффициент", self.single_stage_structure_var)
+        ).grid(row=13, column=0, columnspan=2, sticky="w", pady=(10, 4))
+        self._add_labeled_entry(parent, 14, "Isp единой ступени, с", self.single_stage_isp_var)
+        self._add_labeled_entry(parent, 15, "Конструктивный коэффициент", self.single_stage_structure_var)
 
         ttk.Label(
             parent,
             text="Две универсальные ступени",
             style="DarkSubHeader.TLabel",
-        ).grid(row=15, column=0, columnspan=2, sticky="w", pady=(10, 4))
-        self._add_labeled_entry(parent, 16, "Isp универсальной ступени, с", self.universal_stage_isp_var)
-        self._add_labeled_entry(parent, 17, "Коэффициент универсальной ступени", self.universal_stage_structure_var)
+        ).grid(row=16, column=0, columnspan=2, sticky="w", pady=(10, 4))
+        self._add_labeled_entry(parent, 17, "Isp универсальной ступени, с", self.universal_stage_isp_var)
+        self._add_labeled_entry(parent, 18, "Коэффициент универсальной ступени", self.universal_stage_structure_var)
 
         ttk.Label(
             parent,
             text="Двухступенчатая схема",
             style="DarkSubHeader.TLabel",
-        ).grid(row=18, column=0, columnspan=2, sticky="w", pady=(10, 4))
-        self._add_labeled_entry(parent, 19, "Isp ступени 1, с", self.stage1_isp_var)
-        self._add_labeled_entry(parent, 20, "Коэффициент ступени 1", self.stage1_structure_var)
-        self._add_labeled_entry(parent, 21, "Isp ступени 2, с", self.stage2_isp_var)
-        self._add_labeled_entry(parent, 22, "Коэффициент ступени 2", self.stage2_structure_var)
+        ).grid(row=19, column=0, columnspan=2, sticky="w", pady=(10, 4))
+        self._add_labeled_entry(parent, 20, "Isp ступени 1, с", self.stage1_isp_var)
+        self._add_labeled_entry(parent, 21, "Коэффициент ступени 1", self.stage1_structure_var)
+        self._add_labeled_entry(parent, 22, "Isp ступени 2, с", self.stage2_isp_var)
+        self._add_labeled_entry(parent, 23, "Коэффициент ступени 2", self.stage2_structure_var)
 
     def _build_results_panel(self, parent: ttk.Frame):
         ttk.Label(parent, text="Результаты орбитального расчета", style="DarkHeader.TLabel").grid(
@@ -504,6 +519,7 @@ class HohmannTransferDialog(tk.Toplevel):
             self.oxidizer_tank_type_var,
             self.fuel_tank_material_var,
             self.oxidizer_tank_material_var,
+            self.booster_diameter_var,
             self.custom_aux_systems_var,
             self.single_stage_isp_var,
             self.single_stage_structure_var,
@@ -720,6 +736,10 @@ class HohmannTransferDialog(tk.Toplevel):
 
     def _compute_booster_data(self, orbit_data):
         payload_mass = self._parse_positive_float(self.payload_mass_var.get(), "Полезная нагрузка")
+        booster_diameter = self._parse_positive_float(
+            self.booster_diameter_var.get(),
+            "Диаметр РБ",
+        )
         oxidizer_to_fuel_ratio = self._parse_positive_float(
             self.oxidizer_ratio_var.get(),
             "Отношение O/F",
@@ -767,6 +787,7 @@ class HohmannTransferDialog(tk.Toplevel):
                 useDocking=False,
                 gasCashionRatio=tank_margin_ratio,
                 customAuxiliarySystems=custom_auxiliary_systems,
+                boosterDiameter=booster_diameter,
             )
             self._validate_booster_summary(summary)
             return summary
@@ -801,6 +822,7 @@ class HohmannTransferDialog(tk.Toplevel):
                 universalConstructionMassRatio=universal_stage_structural_ratio,
                 gasCashionRatio=tank_margin_ratio,
                 customAuxiliarySystems=custom_auxiliary_systems,
+                boosterDiameter=booster_diameter,
             )
             self._validate_booster_summary(summary)
             return summary
@@ -835,6 +857,7 @@ class HohmannTransferDialog(tk.Toplevel):
                 universalConstructionMassRatio=universal_stage_structural_ratio,
                 gasCashionRatio=tank_margin_ratio,
                 customAuxiliarySystems=custom_auxiliary_systems,
+                boosterDiameter=booster_diameter,
             )
             self._validate_booster_summary(summary)
             return summary
@@ -873,15 +896,16 @@ class HohmannTransferDialog(tk.Toplevel):
             stage2ConstructionMassRatio=stage2_structural_ratio,
             gasCashionRatio=tank_margin_ratio,
             customAuxiliarySystems=custom_auxiliary_systems,
+            boosterDiameter=booster_diameter,
         )
         self._validate_booster_summary(summary)
         return summary
 
     def _validate_booster_summary(self, summary):
-        remaining_mass = summary["remaining_auxiliary_mass"]
+        remaining_mass = summary.get("remaining_auxiliary_mass")
         if remaining_mass is not None and remaining_mass < 0:
             raise ValueError(
-                "Заданной стартовой массы РБ недостаточно для размещения топлива, "
+                "Расчетная стартовая масса РБ недостаточна для размещения топлива, "
                 "полезной нагрузки и уже учтенных вспомогательных систем."
             )
 
@@ -909,45 +933,46 @@ class HohmannTransferDialog(tk.Toplevel):
 
         header = [
             f"Схема: {self._get_scheme_label()}",
-            f"Расчетная стартовая масса РБ: {booster_summary['start_mass']:,.1f} кг",
-            f"Полезная нагрузка: {booster_summary['payload_mass']:,.1f} кг",
-            f"Суммарная масса топлива и окислителя: {booster_summary['total_propellant_mass']:,.1f} кг",
-            f"Суммарная конструктивная масса: {booster_summary['total_construction_mass']:,.1f} кг",
-            f"Масса встроенных вспомогательных систем: {booster_summary['existing_auxiliary_mass']:,.1f} кг",
-            f"Масса пользовательских вспомогательных систем: {booster_summary['custom_auxiliary_mass']:,.1f} кг",
-            f"Остаток массы под вспомогательные системы: {booster_summary['remaining_auxiliary_mass']:,.1f} кг",
+            f"Расчетная стартовая масса РБ: {format_optional_mass(booster_summary.get('start_mass'))}",
+            f"Полезная нагрузка: {format_optional_mass(booster_summary.get('payload_mass'))}",
+            f"Диаметр РБ: {format_optional_float(booster_summary.get('booster_diameter'), 'м', 2)}",
+            f"Суммарная масса топлива и окислителя: {format_optional_mass(booster_summary.get('total_propellant_mass'))}",
+            f"Суммарная конструктивная масса: {format_optional_mass(booster_summary.get('total_construction_mass'))}",
+            f"Масса встроенных вспомогательных систем: {format_optional_mass(booster_summary.get('existing_auxiliary_mass'))}",
+            f"Масса пользовательских вспомогательных систем: {format_optional_mass(booster_summary.get('custom_auxiliary_mass'))}",
+            f"Остаток массы под вспомогательные системы: {format_optional_mass(booster_summary.get('remaining_auxiliary_mass'))}",
             "",
         ]
         self.booster_text.insert("end", "\n".join(header))
 
-        if booster_summary["custom_auxiliary_systems"]:
+        if booster_summary.get("custom_auxiliary_systems"):
             custom_lines = ["Пользовательские вспомогательные системы:"]
-            for name, mass in booster_summary["custom_auxiliary_systems"]:
+            for name, mass in booster_summary.get("custom_auxiliary_systems", []):
                 custom_lines.append(f"  {name}: {mass:,.1f} кг")
             custom_lines.append("")
             self.booster_text.insert("end", "\n".join(custom_lines))
 
-        for stage in booster_summary["stages"]:
+        for stage in booster_summary.get("stages", []):
             auxiliary_systems = ", ".join(
-                f"{name}: {mass:,.1f} кг" for name, mass in stage["auxiliary_systems"]
+                f"{name}: {mass:,.1f} кг" for name, mass in stage.get("auxiliary_systems", [])
             ) or "нет"
             lines = [
-                f"{stage['name']} ({stage['assigned_burn']})",
-                f"  Требуемый deltaV: {stage['required_delta_v']:,.2f} м/с",
-                f"  Удельный импульс: {stage['specific_impulse']:,.1f} с",
-                f"  Массовое число: {stage['mass_ratio']:,.3f}",
-                f"  Полная масса ступени: {stage['total_stage_mass']:,.1f} кг",
-                f"  Полезная нагрузка для ступени: {stage['payload_mass']:,.1f} кг",
-                f"  Конструктивная масса: {stage['construction_mass']:,.1f} кг",
+                f"{stage.get('name', 'Ступень')} ({stage.get('assigned_burn', '-')})",
+                f"  Требуемый deltaV: {format_optional_float(stage.get('required_delta_v'), 'м/с', 2)}",
+                f"  Удельный импульс: {format_optional_float(stage.get('specific_impulse'), 'с', 1)}",
+                f"  Массовое число: {format_optional_float(stage.get('mass_ratio'), '', 3)}",
+                f"  Полная масса ступени: {format_optional_mass(stage.get('total_stage_mass'))}",
+                f"  Полезная нагрузка для ступени: {format_optional_mass(stage.get('payload_mass'))}",
+                f"  Конструктивная масса: {format_optional_mass(stage.get('construction_mass'))}",
                 f"  Дополнительные системы: {auxiliary_systems}",
-                f"  Масса компонентов: {stage['total_propellant_mass']:,.1f} кг",
-                f"  Топливо: {stage['fuel_mass']:,.1f} кг",
-                f"  Окислитель: {stage['oxidizer_mass']:,.1f} кг",
-                f"  Материал бака топлива: {stage['fuel_tank_material']}",
-                f"  Материал бака окислителя: {stage['oxidizer_tank_material']}",
-                f"  Объем бака топлива: {stage['fuel_tank_volume']:,.3f} м^3",
-                f"  Объем бака окислителя: {stage['oxidizer_tank_volume']:,.3f} м^3",
-                f"  Остаток конструктивной массы: {stage['remaining_construction_mass']:,.1f} кг",
+                f"  Масса компонентов: {format_optional_mass(stage.get('total_propellant_mass'))}",
+                f"  Топливо: {format_optional_mass(stage.get('fuel_mass'))}",
+                f"  Окислитель: {format_optional_mass(stage.get('oxidizer_mass'))}",
+                f"  Материал бака топлива: {stage.get('fuel_tank_material', '-')}",
+                f"  Материал бака окислителя: {stage.get('oxidizer_tank_material', '-')}",
+                f"  Объем бака топлива: {format_optional_float(stage.get('fuel_tank_volume'), 'м^3', 3)}",
+                f"  Объем бака окислителя: {format_optional_float(stage.get('oxidizer_tank_volume'), 'м^3', 3)}",
+                f"  Остаток конструктивной массы: {format_optional_mass(stage.get('remaining_construction_mass'))}",
                 "",
             ]
             self.booster_text.insert("end", "\n".join(lines))

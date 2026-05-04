@@ -377,7 +377,7 @@ def summarizeStage(stageObject, gasCashionRatio=0.1):
     }
 
 
-def buildBoosterSummaryForHohmannTransfer(payloadMass, specificImpulse, deltaV, firstBurnVelocity, secondBurnVelocity, constructionMassRatio, oxidezerFuelMassRatio, fuelType: str, oxidizerType: str, oxidezerTankType: str, fuelTankType: str, stageCount: int = 2, useUniversalStage: bool = False, useDocking: bool = False, stage1SpecificImpulse=None, stage2SpecificImpulse=None, universalSpecificImpulse=None, stage1ConstructionMassRatio=None, stage2ConstructionMassRatio=None, universalConstructionMassRatio=None, gasCashionRatio=0.1, fuelTankMaterial='AMg6', oxidizerTankMaterial='AMg6', startMass=None, customAuxiliarySystems=None):
+def buildBoosterSummaryForHohmannTransfer(payloadMass, specificImpulse, deltaV, firstBurnVelocity, secondBurnVelocity, constructionMassRatio, oxidezerFuelMassRatio, fuelType: str, oxidizerType: str, oxidezerTankType: str, fuelTankType: str, stageCount: int = 2, useUniversalStage: bool = False, useDocking: bool = False, stage1SpecificImpulse=None, stage2SpecificImpulse=None, universalSpecificImpulse=None, stage1ConstructionMassRatio=None, stage2ConstructionMassRatio=None, universalConstructionMassRatio=None, gasCashionRatio=0.1, fuelTankMaterial='AMg6', oxidizerTankMaterial='AMg6', startMass=None, customAuxiliarySystems=None, boosterDiameter=None):
     stages = buildStagesForHomanTransfer(
         payloadMass,
         specificImpulse,
@@ -427,6 +427,7 @@ def buildBoosterSummaryForHohmannTransfer(payloadMass, specificImpulse, deltaV, 
         "custom_auxiliary_systems": customAuxiliarySystems,
         "custom_auxiliary_mass": customAuxiliaryMass,
         "remaining_auxiliary_mass": auxiliaryMassBudget,
+        "booster_diameter": boosterDiameter,
     }
         
 
@@ -458,3 +459,14 @@ class RCSThruster:
 
 
 E11D458M = RCSThruster(thrust=392, specificImpulse=302/9.81, propellantType="MMH", thrusterType="Bipropellant", thrusterMass=3, propellantMass=50)
+
+
+class launchVehicle:
+    """A class representing a launch vehicle. It contains information about the stages of the vehicle and the total mass."""
+    def __init__(self, payloadMass, maxPayloadDiameter, maxPayLoadLength, rocketName):
+        self.payloadMass = payloadMass
+        self.maxPayloadDiameter = maxPayloadDiameter
+        self.maxPayLoadLength = maxPayLoadLength
+        self.rocketName = rocketName
+        
+        
