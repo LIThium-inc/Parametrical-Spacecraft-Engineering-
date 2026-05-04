@@ -402,7 +402,7 @@ class HohmannTransferDialog(tk.Toplevel):
             style="DarkSubHeader.TLabel",
         ).grid(row=16, column=0, columnspan=2, sticky="w", pady=(10, 4))
         self._add_labeled_entry(parent, 17, "Isp универсальной ступени, с", self.universal_stage_isp_var)
-        self._add_labeled_entry(parent, 18, "Коэффициент универсальной ступени", self.universal_stage_structure_var)
+        self._add_labeled_entry(parent, 18, "Конструктивный коэффициент", self.universal_stage_structure_var)
 
         ttk.Label(
             parent,
@@ -410,9 +410,9 @@ class HohmannTransferDialog(tk.Toplevel):
             style="DarkSubHeader.TLabel",
         ).grid(row=19, column=0, columnspan=2, sticky="w", pady=(10, 4))
         self._add_labeled_entry(parent, 20, "Isp ступени 1, с", self.stage1_isp_var)
-        self._add_labeled_entry(parent, 21, "Коэффициент ступени 1", self.stage1_structure_var)
+        self._add_labeled_entry(parent, 21, "Конструктивный коэффициент 1", self.stage1_structure_var)
         self._add_labeled_entry(parent, 22, "Isp ступени 2, с", self.stage2_isp_var)
-        self._add_labeled_entry(parent, 23, "Коэффициент ступени 2", self.stage2_structure_var)
+        self._add_labeled_entry(parent, 23, "Конструктивный коэффициент 2", self.stage2_structure_var)
 
     def _build_results_panel(self, parent: ttk.Frame):
         ttk.Label(parent, text="Результаты орбитального расчета", style="DarkHeader.TLabel").grid(
