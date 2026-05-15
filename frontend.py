@@ -1,8 +1,9 @@
-import math as m
+﻿import math as m
+import os
 import tkinter as tk
 from tkinter import ttk
 import json
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 
 from backend import (
     EARTH_RADIUS_KM,
@@ -14,6 +15,13 @@ from backend import (
     fuelDensity,
     oxiderDensity,
 )
+
+try:
+    from PIL import Image, ImageDraw, ImageFont
+except ImportError:
+    Image = None
+    ImageDraw = None
+    ImageFont = None
 
 
 APP_BG = "#1b1b1d"
@@ -72,6 +80,8 @@ class HohmannTransferDialog(tk.Toplevel):
         self.oxidizer_ratio_var = tk.StringVar(value="3.4")
         self.tank_margin_var = tk.StringVar(value="0.08")
         self.custom_aux_systems_var = tk.StringVar(value="Telemetry:25; Power:40")
+        self.export_mode_var = tk.StringVar(value="current_view")
+        self.export_scale_var = tk.StringVar(value="2")
         self.single_stage_isp_var = tk.StringVar(value="360")
         self.single_stage_structure_var = tk.StringVar(value="0.12")
         self.universal_stage_isp_var = tk.StringVar(value="355")
@@ -129,6 +139,12 @@ class HohmannTransferDialog(tk.Toplevel):
         )
         style.configure(
             "DarkSubHeader.TLabel",
+            background=PANEL_BG,
+            foreground=MUTED_FG,
+            font=("Segoe UI", 9),
+        )
+        style.configure(
+            "DarkMuted.TLabel",
             background=PANEL_BG,
             foreground=MUTED_FG,
             font=("Segoe UI", 9),
@@ -250,6 +266,7 @@ class HohmannTransferDialog(tk.Toplevel):
         action_panel.columnconfigure(2, weight=1)
         action_panel.columnconfigure(3, weight=1)
         action_panel.columnconfigure(4, weight=1)
+        action_panel.columnconfigure(5, weight=1)
 
         ttk.Button(
             action_panel,
@@ -282,6 +299,12 @@ class HohmannTransferDialog(tk.Toplevel):
             style="Dark.TButton",
             command=self.load_project,
         ).grid(row=0, column=4, sticky="ew", padx=(6, 0))
+        ttk.Button(
+            action_panel,
+            text="Экспорт PNG",
+            style="Dark.TButton",
+            command=self.export_orbit_scheme_png,
+        ).grid(row=0, column=5, sticky="ew", padx=(6, 0))
 
         results_panel = ttk.Frame(controls, padding=12, style="AltPanel.TFrame")
         results_panel.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(0, 12))
@@ -1274,6 +1297,293 @@ class HohmannTransferDialog(tk.Toplevel):
             )
             y += 26
 
+    def export_orbit_scheme_png(self):
+        if Image is None or ImageDraw is None:
+            messagebox.showerror(
+                "Экспорт недоступен",
+                "Для экспорта PNG требуется установленный пакет Pillow.",
+            )
+            return
+
+        try:
+            orbit_data = self._compute_orbit_data()
+        except ValueError as error:
+            messagebox.showerror("Ошибка параметров", str(error))
+            return
+
+        export_options = self._show_export_options_dialog()
+        if export_options is None:
+            return
+
+        path = filedialog.asksaveasfilename(
+            parent=self,
+            title="Экспорт схемы орбитального расчета",
+            defaultextension=".png",
+            filetypes=[("PNG", "*.png")],
+            initialfile="orbit_scheme_transparent.png",
+        )
+        if not path:
+            return
+
+        image = self._render_orbit_scheme_image(orbit_data, export_options)
+        image.save(path, "PNG")
+        messagebox.showinfo("Экспорт завершен", f"Схема сохранена:\n{path}")
+
+    def _show_export_options_dialog(self):
+        dialog = tk.Toplevel(self)
+        dialog.title("Параметры экспорта PNG")
+        dialog.transient(self)
+        dialog.grab_set()
+        dialog.configure(bg=APP_BG)
+        dialog.resizable(False, False)
+
+        frame = ttk.Frame(dialog, padding=16, style="Panel.TFrame")
+        frame.grid(row=0, column=0, sticky="nsew")
+        frame.columnconfigure(0, weight=1)
+
+        ttk.Label(frame, text="Область экспорта", style="DarkHeader.TLabel").grid(
+            row=0, column=0, sticky="w"
+        )
+        ttk.Radiobutton(
+            frame,
+            text="Текущий вид сцены",
+            value="current_view",
+            variable=self.export_mode_var,
+            style="Dark.TRadiobutton",
+        ).grid(row=1, column=0, sticky="w", pady=(10, 4))
+        ttk.Radiobutton(
+            frame,
+            text="Вся схема целиком",
+            value="full_scheme",
+            variable=self.export_mode_var,
+            style="Dark.TRadiobutton",
+        ).grid(row=2, column=0, sticky="w", pady=4)
+
+        ttk.Label(frame, text="Масштаб рендера", style="DarkHeader.TLabel").grid(
+            row=3, column=0, sticky="w", pady=(14, 0)
+        )
+        ttk.Combobox(
+            frame,
+            textvariable=self.export_scale_var,
+            values=["1", "2", "4", "6"],
+            state="readonly",
+            style="Dark.TCombobox",
+        ).grid(row=4, column=0, sticky="ew", pady=(10, 0))
+
+        ttk.Label(
+            frame,
+            text=(
+                "Текущий вид сохраняет только видимый фрагмент сцены с учетом "
+                "приближения и сдвига. Больший масштаб повышает детализацию."
+            ),
+            style="DarkMuted.TLabel",
+            wraplength=360,
+            justify="left",
+        ).grid(row=5, column=0, sticky="w", pady=(12, 0))
+
+        result = {"confirmed": False}
+
+        buttons = ttk.Frame(frame, style="Panel.TFrame")
+        buttons.grid(row=6, column=0, sticky="ew", pady=(16, 0))
+        buttons.columnconfigure(0, weight=1)
+        buttons.columnconfigure(1, weight=1)
+
+        def confirm():
+            result["confirmed"] = True
+            dialog.destroy()
+
+        ttk.Button(buttons, text="Отмена", command=dialog.destroy).grid(
+            row=0, column=0, sticky="ew", padx=(0, 6)
+        )
+        ttk.Button(buttons, text="Продолжить", command=confirm).grid(
+            row=0, column=1, sticky="ew", padx=(6, 0)
+        )
+
+        dialog.update_idletasks()
+        dialog.geometry(f"+{self.winfo_rootx() + 120}+{self.winfo_rooty() + 120}")
+        dialog.wait_window()
+
+        if not result["confirmed"]:
+            return None
+
+        try:
+            scale_multiplier = int(self.export_scale_var.get())
+        except ValueError:
+            messagebox.showerror("Ошибка параметров", "Масштаб экспорта должен быть целым числом.")
+            return None
+
+        if scale_multiplier <= 0:
+            messagebox.showerror("Ошибка параметров", "Масштаб экспорта должен быть положительным.")
+            return None
+
+        return {
+            "mode": self.export_mode_var.get(),
+            "multiplier": scale_multiplier,
+        }
+
+    def _render_orbit_scheme_image(self, orbit_data, export_options):
+        multiplier = export_options["multiplier"]
+        mode = export_options["mode"]
+
+        if mode == "current_view":
+            base_width = max(600, self.canvas.winfo_width() or 1180)
+            base_height = max(600, self.canvas.winfo_height() or 920)
+            width = int(base_width * multiplier)
+            height = int(base_height * multiplier)
+            padding = 72 * multiplier
+            center_x = width / 2 + self.view_offset_x * multiplier
+            center_y = height / 2 + self.view_offset_y * multiplier
+            view_scale = self.view_scale
+            draw_legend = True
+        else:
+            base_size = 1800
+            width = base_size * multiplier
+            height = base_size * multiplier
+            padding = 120 * multiplier
+            center_x = width / 2
+            center_y = height / 2
+            view_scale = 1.0
+            draw_legend = False
+
+        image = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(image)
+
+        max_radius_km = max(orbit_data["initial_radius_km"], orbit_data["target_radius_km"])
+        base_scale = (min(width, height) / 2 - padding) / max_radius_km
+        scale = base_scale * view_scale
+
+        earth_radius_px = EARTH_RADIUS_KM * scale
+        scaled_initial = orbit_data["initial_radius_km"] * scale
+        scaled_target = orbit_data["target_radius_km"] * scale
+        scaled_perigee = min(orbit_data["initial_radius_km"], orbit_data["target_radius_km"]) * scale
+        scaled_apogee = max(orbit_data["initial_radius_km"], orbit_data["target_radius_km"]) * scale
+        semi_major_px = (scaled_perigee + scaled_apogee) / 2
+        focal_offset_px = (scaled_apogee - scaled_perigee) / 2
+        semi_minor_px = m.sqrt(max(semi_major_px**2 - focal_offset_px**2, 0))
+        transfer_to_outer_orbit = orbit_data["target_radius_km"] >= orbit_data["initial_radius_km"]
+
+        orbit_line_width = max(2, multiplier * 2)
+        transfer_line_width = max(3, multiplier * 2)
+        marker_radius = max(6, multiplier * 4)
+        marker_outline = max(1, multiplier)
+
+        self._draw_circle_on_image(draw, center_x, center_y, scaled_initial, (85, 184, 255, 255), orbit_line_width)
+        self._draw_circle_on_image(draw, center_x, center_y, scaled_target, (123, 216, 143, 255), orbit_line_width)
+        draw.ellipse(
+            (
+                center_x - earth_radius_px,
+                center_y - earth_radius_px,
+                center_x + earth_radius_px,
+                center_y + earth_radius_px,
+            ),
+            fill=(54, 110, 181, 220),
+            outline=(216, 240, 255, 255),
+            width=max(1, multiplier),
+        )
+
+        points = []
+        steps = 280
+        if transfer_to_outer_orbit:
+            start_angle = m.pi
+            end_angle = 0.0
+            ellipse_center_x = center_x + focal_offset_px
+            direction = -1
+        else:
+            start_angle = 0.0
+            end_angle = m.pi
+            ellipse_center_x = center_x - focal_offset_px
+            direction = 1
+
+        for step in range(steps + 1):
+            progress = step / steps
+            angle = start_angle + (end_angle - start_angle) * progress
+            x = ellipse_center_x + semi_major_px * m.cos(angle)
+            y = center_y + direction * semi_minor_px * m.sin(angle)
+            points.append((x, y))
+        draw.line(points, fill=(255, 138, 102, 255), width=transfer_line_width)
+
+        if transfer_to_outer_orbit:
+            first_point = (center_x - scaled_initial, center_y)
+            second_point = (center_x + scaled_target, center_y)
+        else:
+            first_point = (center_x + scaled_initial, center_y)
+            second_point = (center_x - scaled_target, center_y)
+
+        self._draw_marker_on_image(draw, first_point, (247, 210, 108, 255), marker_radius, marker_outline)
+        self._draw_marker_on_image(draw, second_point, (255, 159, 110, 255), marker_radius, marker_outline)
+
+        if draw_legend:
+            self._draw_legend_on_image(draw, width, multiplier)
+
+        return image
+
+    def _draw_circle_on_image(self, draw, center_x, center_y, radius, color, width):
+        draw.ellipse(
+            (
+                center_x - radius,
+                center_y - radius,
+                center_x + radius,
+                center_y + radius,
+            ),
+            outline=color,
+            width=width,
+        )
+
+    def _draw_marker_on_image(self, draw, point, color, radius=8, outline_width=2):
+        x, y = point
+        draw.ellipse(
+            (x - radius, y - radius, x + radius, y + radius),
+            fill=color,
+            outline=(255, 255, 255, 255),
+            width=outline_width,
+        )
+
+    def _draw_legend_on_image(self, draw, canvas_width, multiplier):
+        font = self._load_export_font(max(12, 11 * multiplier))
+        use_ascii_fallback = font is None
+        legend_items = [
+            ((85, 184, 255, 255), "Initial orbit" if use_ascii_fallback else "Начальная орбита"),
+            ((123, 216, 143, 255), "Target orbit" if use_ascii_fallback else "Целевая орбита"),
+            ((255, 138, 102, 255), "Transfer orbit" if use_ascii_fallback else "Переходная орбита"),
+        ]
+
+        x = canvas_width - 225 * multiplier
+        y = 30 * multiplier
+        line_length = 26 * multiplier
+        spacing = 26 * multiplier
+        text_offset = 36 * multiplier
+
+        for color, text in legend_items:
+            draw.line(
+                ((x, y), (x + line_length, y)),
+                fill=color,
+                width=max(2, multiplier),
+            )
+            draw.text(
+                (x + text_offset, y - 8 * multiplier),
+                text,
+                fill=(216, 216, 221, 255),
+                font=font,
+            )
+            y += spacing
+
+    def _load_export_font(self, size):
+        if ImageFont is None:
+            return None
+
+        candidate_paths = [
+            r"C:\Windows\Fonts\segoeui.ttf",
+            r"C:\Windows\Fonts\arial.ttf",
+            r"C:\Windows\Fonts\tahoma.ttf",
+        ]
+        for font_path in candidate_paths:
+            if os.path.exists(font_path):
+                try:
+                    return ImageFont.truetype(font_path, size=size)
+                except Exception:
+                    continue
+        return None
+
 
     def save_project(self):
         data = {}
@@ -1372,3 +1682,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
